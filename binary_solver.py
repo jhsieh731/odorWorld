@@ -1,53 +1,88 @@
+# Demonstrates that keeping data as-is (fixed distribution) is too simple of a task: solved below by dp
+
 import pandas as pd
-import itertools
 import numpy as np
-import pickle as pkl
 
-
-def find_combinations(df, target_vector, n):
-    # Convert target_vector to a numpy array for easy comparison
+def optimized_search(df, target_vector, n):
     target_vector = np.array(target_vector)
-    
-    # Get all row indices in the DataFrame
-    indices = range(len(df))
-    
-    # Store combinations that match the target_vector
-    matching_combinations = []
-    
-    # Generate all combinations of n indices
-    for combination in itertools.combinations(indices, n):
-        # OR the vectors in the combination
-        or_result = df.iloc[combination[0]].values
-        for idx in combination[1:]:
-            or_result = np.bitwise_or(or_result, df.iloc[idx].values)
+    df_vectors = df.drop(columns=['Name']).to_numpy()
+    names = df['Name'].to_numpy()
+    results = []
+
+    def search(combination, index, current_or):
+        # Pruning condition: if current combination OR result is already not matching the target
+        if np.any(np.bitwise_and(current_or, target_vector) != current_or):
+            return
         
-        # Check if the result matches the target_vector
-        if np.array_equal(or_result, target_vector):
-            # If it matches, add the combination (as row numbers) to the results
-            matching_combinations.append(combination)
-    
-    return matching_combinations
+        # If combination size is n, check if it matches the target_vector exactly
+        if len(combination) == n:
+            if np.array_equal(current_or, target_vector):
+                results.append([names[i] for i in combination])
+            return
 
-# Example usage
-# Define your DataFrame here. For demonstration, I'll create a sample DataFrame.
-# data = {
-#     'A': [0, 1, 0, 1],
-#     'B': [1, 1, 0, 0],
-#     'C': [0, 0, 1, 0],
-#     'D': [0, 0, 0, 1]
-# }
-# df = pd.read_csv('data_binary.csv').drop('Unnamed: 0', axis=1)
-# df_trunc = df.drop(['index', 'Name', 'type', 'chems'], axis=1).dtypes('int64')
+        # Avoid going beyond the dataframe's rows
+        if index >= len(df_vectors):
+            return
+        
+        # Explore further with or without the current index
+        search(combination + [index], index + 1, np.bitwise_or(current_or, df_vectors[index]))
+        search(combination, index + 1, current_or)
 
-with open('binary_opens.pkl','rb') as readfile:
-  df = pd.DataFrame(pkl.load(readfile))
+    # Initialize the search
+    search([], 0, np.zeros_like(target_vector))
 
-# Target vector
-target_vector = (df.iloc[5] + df.iloc[9]).values
+    return results
 
-# Number of vectors to OR
+def optimized_search_sum(df, target_vector, n):
+    target_vector = np.array(target_vector)
+    df_vectors = df.drop(columns=['Name']).to_numpy()
+    names = df['Name'].to_numpy()
+    results = []
+
+    def search(combination, index, current_sum):
+        # Pruning condition: if current sum exceeds target_vector in any dimension, return
+        if np.any(current_sum > target_vector):
+            return
+        
+        # If combination size is n, check if it matches the target_vector exactly
+        if len(combination) == n:
+            if np.array_equal(current_sum, target_vector):
+                results.append([names[i] for i in combination])
+            return
+
+        # Avoid going beyond the dataframe's rows
+        if index >= len(df_vectors):
+            return
+        
+        # Explore further with or without the current index
+        search(combination + [index], index + 1, current_sum + df_vectors[index])
+        search(combination, index + 1, current_sum)
+
+    # Initialize the search with an empty sum vector
+    search([], 0, np.zeros_like(target_vector))
+
+    return results
+
+
+# Load data
+df = pd.read_csv('data_binary.csv').drop(['Unnamed: 0', 'index', 'chems', 'type'], axis=1)
+
+chems = list(df.columns)
+chems.remove('Name')
+df[chems] = df[chems].astype(int)
+
+# Define target vectors with arbitrary indices
+idx1, idx2 = 102, 298
+print("Correct result (as names):", f"{df['Name'][idx1]}, {df['Name'][idx2]}")
+target_vector = np.bitwise_or(df[chems].iloc[idx1].values, df[chems].iloc[idx2].values)
+target_vector_sum = df[chems].iloc[idx1].values + df[chems].iloc[idx2].values
+
+# Number of vectors to OR/SUM
 n = 2
 
 # Find combinations
-result = find_combinations(df, target_vector, n)
-print("Matching combinations (as row indices):", result)
+result = optimized_search(df, target_vector, n)
+print("Matching combinations (as names):", result)
+
+result = optimized_search_sum(df, target_vector_sum, n)
+print("Matching combinations (as names):", result)
