@@ -1,35 +1,38 @@
 import torch
 from torch.utils.data import Dataset
-import pandas as pd
 import pickle as pkl
-  
+
 class FixedUniformDataset(Dataset):
-  def __init__(self, split_file, transform=None, target_transform=None):
-    self.transform = transform
-    self.target_transform = target_transform
-    data_label_dict = {}
+    def __init__(self, split_file, transform=None, target_transform=None):
+        self.transform = transform
+        self.target_transform = target_transform
 
-    self.items = pd.DataFrame(columns=['data', 'label'])
-    with open(split_file, 'rb') as readfile:
-      while True:
-        try:
-          self.items.loc[len(self.items.index)] = pkl.load(readfile)
-        except EOFError:
-            break
-  
+        # Load all items at once
+        self.items = []  # Use a list to collect items
+        with open(split_file, 'rb') as readfile:
+            while True:
+                try:
+                    item = pkl.load(readfile)
+                    self.items.append(item)  # Append to the list
+                except EOFError:
+                    break
 
-  def __len__(self):
-    return len(self.items)
+        # Optionally convert list to a DataFrame here if needed
+        # self.items = pd.DataFrame(self.items, columns=['data', 'label'])
 
+    def __len__(self):
+        return len(self.items)
 
-  def __getitem__(self, idx):
-    odor, label = self.items.iloc[idx, :]
+    def __getitem__(self, idx):
+        odor, label = self.items[idx]  # Directly use list indexing
 
-    odor = torch.Tensor(odor)
-    if self.transform:
-        odor = self.transform(odor)
-        # print(image.shape)
-    if self.target_transform:
-        label = self.target_transform(label)
-    
-    return odor, label
+        # Directly convert to tensor
+        odor = torch.tensor(odor, dtype=torch.float32)  # Use torch.tensor() directly
+        
+        if self.transform:
+            odor = self.transform(odor)
+        
+        if self.target_transform:
+            label = self.target_transform(label)
+        
+        return odor, label
