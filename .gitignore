@@ -1,4 +1,3 @@
 distributions.pkl
 *.idx
-*testing.pkl
-*training.pkl
+*.pkl
