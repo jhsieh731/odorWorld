@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, random_split
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import dataset
 import rsample_dataset
 import csv
 import sys
@@ -16,8 +17,9 @@ def main():
     BATCH_SIZE = int(sys.argv[4])
     NUM_EPOCHS = int(sys.argv[5])
     MODEL_TO_LOAD = None if sys.argv[6] == 'None' else sys.argv[6]
-    SAVE_AS = sys.argv[7]
-    SAMPLE_SIZE = int(sys.argv[8])
+    SAMPLE_SIZE = int(sys.argv[7])
+    SAVE = sys.argv[8]
+    LR = sys.argv[9]
 
     # load pickled data, write to index_file for dataset lookup
     def create_index(pickle_file, index_file):
@@ -47,34 +49,14 @@ def main():
             return tensor + noise
 
     # datafile = f'data/{DSET_TYPE}_{N}_train.pkl'
-    datafile = 'data/B_500.pkl'
+    datafile = f'data/{DSET_TYPE}_{N}.pkl'
     indexfile = f'indices/{DSET_TYPE}_{N}_train.idx'
 
     create_index(datafile, indexfile)
 
-    # !! This following may be repurposed to load all mixtures at once
-    # r_chem_dataset = rsample_dataset.RSampleDataset(
-    #     pickle_file=datafile,
-    #     index_file=indexfile,
-    #     n_mixture=M,
-    #     num_classes=N,
-    #     transform=AddGaussianNoise(),
-    #     total_samples=SAMPLE_SIZE,
-    # )
-
-    # train_size = int(0.8 * len(r_chem_dataset))
-    # val_size = len(r_chem_dataset) - train_size
-    # train_dataset, val_dataset = random_split(r_chem_dataset, [train_size, val_size])
-
-
-    # # Create DataLoader for training and validation
-    # train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    # val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
-
-
     # get new samples to train on (per epoch)
     def new_loaders():
-        dataset =  rsample_dataset.RSampleDataset(
+        dataset = rsample_dataset.RSampleDataset(
             pickle_file=datafile,
             index_file=indexfile,
             n_mixture=M,
@@ -115,7 +97,7 @@ def main():
     model.to(device)
 
     # Optimizer
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=LR)
 
     class WeightedBCEWithLogitsLoss(nn.Module):
         def __init__(self, pos_weight):
@@ -134,7 +116,7 @@ def main():
     loss_function = WeightedBCEWithLogitsLoss(pos_weight=pos_weight.to(device))  # Ensure weights are on the same device as your model/data
 
     # Accuracy measure function
-    def top_n_accuracy(preds, labels, n=2, correct_n=M):
+    def top_n_accuracy(preds, labels, n=M, correct_n=M):
         """
         Calculate the top-n accuracy for the given predictions and labels.
         """
@@ -261,29 +243,32 @@ def main():
             print(f'Epoch: {epoch+1}/{num_epochs} \t'
                 f'Training Loss: {train_loss:.4f} \t Training Accuracy: {train_accuracy:.4f} \t'
                 f'Validation Loss: {val_loss:.4f} \t Validation Accuracy: {val_accuracy:.4f}')
+            
+            # Save model checkpoint
+            if epoch % SAVE == 0 and epoch != 0:
+                torch.save({
+                    'epoch': epoch + 1,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': val_loss,
+                    'acc': val_accuracy,
+                }, f'checkpoints/M{M}_cp{epoch+1}.pth')
         return train_losses, val_losses, train_accuracies, val_accuracies
 
 
 
-    t_losses, v_losses, t_accuracies, v_accuracies = [], [], [], []
 
-    # optimizer=optim.Adam(model.parameters(), lr=0.01)
     train_losses, val_losses, train_accuracies, val_accuracies = train_model(model, loss_function, optimizer, NUM_EPOCHS)
-    t_losses += train_losses
-    v_losses += val_losses
-    t_accuracies += train_accuracies
-    v_accuracies += val_accuracies
 
-    # Zipping lists so each tuple represents a row in the CSV
-    rows = zip(train_losses, val_losses, train_accuracies, val_accuracies)
+    # Save model & epoch stats
+    torch.save(model.state_dict(), f'final_models/{DSET_TYPE}_{N}_M{M}.pt')
 
-    with open('output.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['train_loss', 'val_loss', 'train_accuracy', 'val_accuracy'])
-        # Write rows to the CSV file
-        writer.writerows(rows)
-
-    torch.save(model.state_dict(), SAVE_AS)
+    with open(f'epoch_stats/{DSET_TYPE}_{N}_M{M}.csv', 'w') as f:
+        csv_writer = csv.writer(f)
+        csv_writer.writerow(train_losses)
+        csv_writer.writerow(val_losses)
+        csv_writer.writerow(train_accuracies)
+        csv_writer.writerow(val_accuracies)
 
 
 if __name__ == '__main__':
