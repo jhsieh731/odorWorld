@@ -94,23 +94,21 @@ def test(m):
     print('finished testing for', m, 'odors')
     return running_accuracy/num_tests
 
-# m = [i for i in range(5, 7)]
-# accuracies = [test(i) for i in m]
+m = [i for i in range(2, 5)]
+accuracies = [test(i) for i in m]
+std = [np.sqrt(p*(1-p)/10) for p in accuracies]
 
-# print(m, accuracies)
-m = [2, 3, 4]
-accuracies = [1.0, 0.98, 1.0]
-
+plt.errorbar(m, accuracies, yerr=std, linewidth=2)
 plt.plot(m, accuracies)
 plt.xlabel('Number of odors')
-plt.xticks([2, 3, 4, 5, 6, 7, 8, 9, 10])
-plt.xlim(2, 10)
-plt.ylim(0, 1)
+plt.xticks([2, 3, 4])
+plt.xlim(2, 4)
+plt.ylim(0, 1.2)
 plt.ylabel('Accuracy')
 plt.title('Accuracy of optimized search algorithm')
 
 # save to file
-plt.savefig('optimized_search_accuracy.png')
+plt.savefig('optimized_search_accuracy_234.png')
         # target_vector_sum = sum(df[chems].iloc[idx1].values, df[chems].iloc[idx2].values)
     # Define target vectors with arbitrary indices
     # idx1, idx2 = 102, 298
