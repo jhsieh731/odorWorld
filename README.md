@@ -50,9 +50,9 @@ These are in the main directory. Most data is read from `binary_opens.pkl`, and 
 **Labeling.** Example: `I_500_M3` is a _noisy fixed intensity_ encoding with _500_ possible odor entity labels and with a _mixture of size 3_.
 
 - Encodings:
-        - `U`: noisy uniform
-        - `I`: noisy fixed intensity
-        - `N`: multivariate normal/Gaussian
+  - `U`: noisy uniform
+  - `I`: noisy fixed intensity
+  - `N`: multivariate normal/Gaussian
 - `Mx`: Mixtures of size $M=x$
 
 ### Subdirectories and files
