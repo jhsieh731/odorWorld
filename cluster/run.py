@@ -18,8 +18,8 @@ def main():
     NUM_EPOCHS = int(sys.argv[5])
     MODEL_TO_LOAD = None if sys.argv[6] == 'None' else sys.argv[6]
     SAMPLE_SIZE = int(sys.argv[7])
-    SAVE = sys.argv[8]
-    LR = sys.argv[9]
+    SAVE = int(sys.argv[8])
+    LR = float(sys.argv[9])
 
     # load pickled data, write to index_file for dataset lookup
     def create_index(pickle_file, index_file):

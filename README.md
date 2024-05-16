@@ -28,6 +28,16 @@ This project uses machine learning to explore the decodability of odor mixtures.
    |_ rsample_dataset.py
    |_ run.py
    |_ run.sh
+|_ cluster/
+   |_ checkpoints/
+   |_ data/
+   |_ epoch_stats/
+   |_ final_models/
+   |_ indices/
+   |_ dataset.py
+   |_ rsample_dataset.py
+   |_ run.py
+   |_ run.sh
 |_ scraper.ipynb
 |_ data.csv
 |_ data_chemicals.csv
@@ -37,7 +47,7 @@ This project uses machine learning to explore the decodability of odor mixtures.
 |_ binary_opens.pkl
 ```
 
-The project structure is split into three main directories: `uniform`, `gaussian`, and `pipeline`. The `figures` directory` is a catch-all for images generated during analysis, and is not complete (i.e. please ignore).
+The project structure is split into three main directories: `uniform`, `gaussian`, and `pipeline`. The `figures` directory is a catch-all for images generated during analysis. The `cluster` contains the same scripts as the pipeline, but consolidated to run on the FAS cluster.
 
 Each of the other three directories are analagous in structure, with the `pipeline` designed for continued future use; the `uniform` and `gaussian` directories are early iterations. These each have a `%data_generator.ipynb` notebook as well as a `model.ipynb` notebook. The data generator is used to create the `.csv` and `.pkl` files used in training, while the model is used to train the neural network models. Additionally, `%dataset.py` defines the custom dataset for PyTorch training.
 

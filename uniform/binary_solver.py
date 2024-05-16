@@ -69,7 +69,7 @@ def optimized_search_sum(df, target_vector, n):
 
 
 # Load data
-df = pd.read_csv('data_binary.csv').drop(['Unnamed: 0', 'index', 'chems', 'type'], axis=1)
+df = pd.read_csv('../data_binary.csv').drop(['Unnamed: 0', 'index', 'chems', 'type'], axis=1)
 
 chems = list(df.columns)
 chems.remove('Name')
